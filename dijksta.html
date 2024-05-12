@@ -1,0 +1,349 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 600;
+                 background-color: #222222;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#97c2fc", "font": {"color": "white"}, "id": "Jeffrey Chavez", "label": "Jeffrey Chavez", "shape": "dot", "title": "Jeffrey Chavez"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Lisa Jackson", "label": "Lisa Jackson", "shape": "dot", "title": "Lisa Jackson"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Megan Young", "label": "Megan Young", "shape": "dot", "title": "Megan Young"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Tommy Walter", "label": "Tommy Walter", "shape": "dot", "title": "Tommy Walter"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Amy Silva", "label": "Amy Silva", "shape": "dot", "title": "Amy Silva"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Danny Morgan", "label": "Danny Morgan", "shape": "dot", "title": "Danny Morgan"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Joshua Blair", "label": "Joshua Blair", "shape": "dot", "title": "Joshua Blair"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Ryan Munoz", "label": "Ryan Munoz", "shape": "dot", "title": "Ryan Munoz"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Cassandra Gaines", "label": "Cassandra Gaines", "shape": "dot", "title": "Cassandra Gaines"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "John Whitehead", "label": "John Whitehead", "shape": "dot", "title": "John Whitehead"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Connie Lawrence", "label": "Connie Lawrence", "shape": "dot", "title": "Connie Lawrence"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Philip Cannon", "label": "Philip Cannon", "shape": "dot", "title": "Philip Cannon"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Shane Henderson", "label": "Shane Henderson", "shape": "dot", "title": "Shane Henderson"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Sherri Baker", "label": "Sherri Baker", "shape": "dot", "title": "Sherri Baker"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Brent Jordan", "label": "Brent Jordan", "shape": "dot", "title": "Brent Jordan"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Holly Wood", "label": "Holly Wood", "shape": "dot", "title": "Holly Wood"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Deborah Figueroa", "label": "Deborah Figueroa", "shape": "dot", "title": "Deborah Figueroa"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Margaret Hawkins DDS", "label": "Margaret Hawkins DDS", "shape": "dot", "title": "Margaret Hawkins DDS"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Christina Walters", "label": "Christina Walters", "shape": "dot", "title": "Christina Walters"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Paula Moreno", "label": "Paula Moreno", "shape": "dot", "title": "Paula Moreno"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Kelly Donovan", "label": "Kelly Donovan", "shape": "dot", "title": "Kelly Donovan"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Rebecca Henderson", "label": "Rebecca Henderson", "shape": "dot", "title": "Rebecca Henderson"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Matthew Foster", "label": "Matthew Foster", "shape": "dot", "title": "Matthew Foster"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Stephanie Ross", "label": "Stephanie Ross", "shape": "dot", "title": "Stephanie Ross"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Judy Baker", "label": "Judy Baker", "shape": "dot", "title": "Judy Baker"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Eric Carney", "label": "Eric Carney", "shape": "dot", "title": "Eric Carney"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Whitney Peters", "label": "Whitney Peters", "shape": "dot", "title": "Whitney Peters"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Fred Smith", "label": "Fred Smith", "shape": "dot", "title": "Fred Smith"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Patty Perez", "label": "Patty Perez", "shape": "dot", "title": "Patty Perez"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Tricia Valencia", "label": "Tricia Valencia", "shape": "dot", "title": "Tricia Valencia"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Zachary Ferrell", "label": "Zachary Ferrell", "shape": "dot", "title": "Zachary Ferrell"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Shannon Jones", "label": "Shannon Jones", "shape": "dot", "title": "Shannon Jones"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Dylan Miller", "label": "Dylan Miller", "shape": "dot", "title": "Dylan Miller"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Jessica Smith", "label": "Jessica Smith", "shape": "dot", "title": "Jessica Smith"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Stephen Mckee", "label": "Stephen Mckee", "shape": "dot", "title": "Stephen Mckee"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "William Baker", "label": "William Baker", "shape": "dot", "title": "William Baker"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Matthew Mcmillan", "label": "Matthew Mcmillan", "shape": "dot", "title": "Matthew Mcmillan"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Anthony Rodriguez", "label": "Anthony Rodriguez", "shape": "dot", "title": "Anthony Rodriguez"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Sherry Decker", "label": "Sherry Decker", "shape": "dot", "title": "Sherry Decker"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Jordan Henderson", "label": "Jordan Henderson", "shape": "dot", "title": "Jordan Henderson"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Carol Tucker", "label": "Carol Tucker", "shape": "dot", "title": "Carol Tucker"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "John Pierce", "label": "John Pierce", "shape": "dot", "title": "John Pierce"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Lisa Barnes", "label": "Lisa Barnes", "shape": "dot", "title": "Lisa Barnes"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Mike Allen", "label": "Mike Allen", "shape": "dot", "title": "Mike Allen"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Aaron Wise", "label": "Aaron Wise", "shape": "dot", "title": "Aaron Wise"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Timothy Duncan", "label": "Timothy Duncan", "shape": "dot", "title": "Timothy Duncan"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Mark Perez", "label": "Mark Perez", "shape": "dot", "title": "Mark Perez"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Aimee Montoya", "label": "Aimee Montoya", "shape": "dot", "title": "Aimee Montoya"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Derek Zuniga", "label": "Derek Zuniga", "shape": "dot", "title": "Derek Zuniga"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Denise Jacobs", "label": "Denise Jacobs", "shape": "dot", "title": "Denise Jacobs"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Sarah Moore", "label": "Sarah Moore", "shape": "dot", "title": "Sarah Moore"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Michele Williams", "label": "Michele Williams", "shape": "dot", "title": "Michele Williams"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Lauren Daniels", "label": "Lauren Daniels", "shape": "dot", "title": "Lauren Daniels"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Shirley Suarez", "label": "Shirley Suarez", "shape": "dot", "title": "Shirley Suarez"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Richard Aguirre", "label": "Richard Aguirre", "shape": "dot", "title": "Richard Aguirre"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "James Brown", "label": "James Brown", "shape": "dot", "title": "James Brown"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Anthony Humphrey", "label": "Anthony Humphrey", "shape": "dot", "title": "Anthony Humphrey"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Daniel Wagner", "label": "Daniel Wagner", "shape": "dot", "title": "Daniel Wagner"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Jamie Arnold", "label": "Jamie Arnold", "shape": "dot", "title": "Jamie Arnold"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Zachary Hicks", "label": "Zachary Hicks", "shape": "dot", "title": "Zachary Hicks"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Elizabeth Fowler", "label": "Elizabeth Fowler", "shape": "dot", "title": "Elizabeth Fowler"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "John Daniel", "label": "John Daniel", "shape": "dot", "title": "John Daniel"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Christopher Bass", "label": "Christopher Bass", "shape": "dot", "title": "Christopher Bass"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "James Ferrell", "label": "James Ferrell", "shape": "dot", "title": "James Ferrell"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Brian Ramirez", "label": "Brian Ramirez", "shape": "dot", "title": "Brian Ramirez"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Allison Hill", "label": "Allison Hill", "shape": "dot", "title": "Allison Hill"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Crystal Robinson", "label": "Crystal Robinson", "shape": "dot", "title": "Crystal Robinson"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Abigail Shaffer", "label": "Abigail Shaffer", "shape": "dot", "title": "Abigail Shaffer"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Daniel Baker", "label": "Daniel Baker", "shape": "dot", "title": "Daniel Baker"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Monica Herrera", "label": "Monica Herrera", "shape": "dot", "title": "Monica Herrera"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Jessica Holmes", "label": "Jessica Holmes", "shape": "dot", "title": "Jessica Holmes"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Steve Sanchez", "label": "Steve Sanchez", "shape": "dot", "title": "Steve Sanchez"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Brittney Phillips", "label": "Brittney Phillips", "shape": "dot", "title": "Brittney Phillips"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Lisa Hensley", "label": "Lisa Hensley", "shape": "dot", "title": "Lisa Hensley"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Michael Lewis", "label": "Michael Lewis", "shape": "dot", "title": "Michael Lewis"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Ethan Adams", "label": "Ethan Adams", "shape": "dot", "title": "Ethan Adams"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Brian Rodriguez", "label": "Brian Rodriguez", "shape": "dot", "title": "Brian Rodriguez"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Tracy House", "label": "Tracy House", "shape": "dot", "title": "Tracy House"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Paul Jones", "label": "Paul Jones", "shape": "dot", "title": "Paul Jones"}, {"color": "#97c2fc", "font": {"color": "white"}, "id": "Angela Lopez", "label": "Angela Lopez", "shape": "dot", "title": "Angela Lopez"}]);
+                  edges = new vis.DataSet([{"arrows": "to", "from": "Jeffrey Chavez", "title": "Likes: 3129 | Comments: 9850", "to": "Lisa Jackson"}, {"arrows": "to", "from": "Lisa Jackson", "title": "Likes: 8179 | Comments: 1570", "to": "Megan Young"}, {"arrows": "to", "from": "Megan Young", "title": "Likes: 9937 | Comments: 5813", "to": "Tommy Walter"}, {"arrows": "to", "from": "Tommy Walter", "title": "Likes: 8141 | Comments: 9056", "to": "Amy Silva"}, {"arrows": "to", "from": "Amy Silva", "title": "Likes: 9755 | Comments: 9300", "to": "Danny Morgan"}, {"arrows": "to", "from": "Danny Morgan", "title": "Likes: 7179 | Comments: 8798", "to": "Joshua Blair"}, {"arrows": "to", "from": "Joshua Blair", "title": "Likes: 8357 | Comments: 8851", "to": "Ryan Munoz"}, {"arrows": "to", "from": "Ryan Munoz", "title": "Likes: 2657 | Comments: 9317", "to": "Cassandra Gaines"}, {"arrows": "to", "from": "Cassandra Gaines", "title": "Likes: 9044 | Comments: 4971", "to": "John Whitehead"}, {"arrows": "to", "from": "John Whitehead", "title": "Likes: 7590 | Comments: 8191", "to": "Connie Lawrence"}, {"arrows": "to", "from": "Connie Lawrence", "title": "Likes: 9945 | Comments: 6546", "to": "Philip Cannon"}, {"arrows": "to", "from": "Philip Cannon", "title": "Likes: 8056 | Comments: 3385", "to": "Shane Henderson"}, {"arrows": "to", "from": "Shane Henderson", "title": "Likes: 7347 | Comments: 7697", "to": "Sherri Baker"}, {"arrows": "to", "from": "Sherri Baker", "title": "Likes: 9901 | Comments: 9590", "to": "Brent Jordan"}, {"arrows": "to", "from": "Brent Jordan", "title": "Likes: 9409 | Comments: 7806", "to": "Holly Wood"}, {"arrows": "to", "from": "Holly Wood", "title": "Likes: 7070 | Comments: 9437", "to": "Deborah Figueroa"}, {"arrows": "to", "from": "Deborah Figueroa", "title": "Likes: 9163 | Comments: 9433", "to": "Margaret Hawkins DDS"}, {"arrows": "to", "from": "Margaret Hawkins DDS", "title": "Likes: 8518 | Comments: 5215", "to": "Christina Walters"}, {"arrows": "to", "from": "Christina Walters", "title": "Likes: 8149 | Comments: 9379", "to": "Paula Moreno"}, {"arrows": "to", "from": "Paula Moreno", "title": "Likes: 8994 | Comments: 9864", "to": "Kelly Donovan"}, {"arrows": "to", "from": "Kelly Donovan", "title": "Likes: 5499 | Comments: 8206", "to": "Rebecca Henderson"}, {"arrows": "to", "from": "Rebecca Henderson", "title": "Likes: 9625 | Comments: 5135", "to": "Matthew Foster"}, {"arrows": "to", "from": "Matthew Foster", "title": "Likes: 8933 | Comments: 5530", "to": "Stephanie Ross"}, {"arrows": "to", "from": "Stephanie Ross", "title": "Likes: 9824 | Comments: 5442", "to": "Judy Baker"}, {"arrows": "to", "from": "Judy Baker", "title": "Likes: 8916 | Comments: 2747", "to": "Eric Carney"}, {"arrows": "to", "from": "Eric Carney", "title": "Likes: 9281 | Comments: 9109", "to": "Whitney Peters"}, {"arrows": "to", "from": "Whitney Peters", "title": "Likes: 8837 | Comments: 9609", "to": "Fred Smith"}, {"arrows": "to", "from": "Fred Smith", "title": "Likes: 8538 | Comments: 6928", "to": "Patty Perez"}, {"arrows": "to", "from": "Patty Perez", "title": "Likes: 8894 | Comments: 5835", "to": "Tricia Valencia"}, {"arrows": "to", "from": "Tricia Valencia", "title": "Likes: 3525 | Comments: 7932", "to": "Zachary Ferrell"}, {"arrows": "to", "from": "Zachary Ferrell", "title": "Likes: 8957 | Comments: 8242", "to": "Shannon Jones"}, {"arrows": "to", "from": "Shannon Jones", "title": "Likes: 9922 | Comments: 4683", "to": "Dylan Miller"}, {"arrows": "to", "from": "Dylan Miller", "title": "Likes: 7622 | Comments: 9431", "to": "Jessica Smith"}, {"arrows": "to", "from": "Jessica Smith", "title": "Likes: 9540 | Comments: 8939", "to": "Stephen Mckee"}, {"arrows": "to", "from": "Stephen Mckee", "title": "Likes: 7010 | Comments: 9880", "to": "William Baker"}, {"arrows": "to", "from": "William Baker", "title": "Likes: 5956 | Comments: 9666", "to": "Matthew Mcmillan"}, {"arrows": "to", "from": "Matthew Mcmillan", "title": "Likes: 9196 | Comments: 6802", "to": "Anthony Rodriguez"}, {"arrows": "to", "from": "Anthony Rodriguez", "title": "Likes: 3417 | Comments: 1046", "to": "Sherry Decker"}, {"arrows": "to", "from": "Sherry Decker", "title": "Likes: 9903 | Comments: 7180", "to": "Jordan Henderson"}, {"arrows": "to", "from": "Jordan Henderson", "title": "Likes: 6632 | Comments: 7971", "to": "Carol Tucker"}, {"arrows": "to", "from": "Carol Tucker", "title": "Likes: 7521 | Comments: 6150", "to": "John Pierce"}, {"arrows": "to", "from": "John Pierce", "title": "Likes: 9167 | Comments: 8242", "to": "Lisa Barnes"}, {"arrows": "to", "from": "Lisa Barnes", "title": "Likes: 8916 | Comments: 8993", "to": "Mike Allen"}, {"arrows": "to", "from": "Mike Allen", "title": "Likes: 9042 | Comments: 2680", "to": "Aaron Wise"}, {"arrows": "to", "from": "Aaron Wise", "title": "Likes: 9270 | Comments: 7991", "to": "Timothy Duncan"}, {"arrows": "to", "from": "Timothy Duncan", "title": "Likes: 8933 | Comments: 8609", "to": "Mark Perez"}, {"arrows": "to", "from": "Mark Perez", "title": "Likes: 9998 | Comments: 8714", "to": "Aimee Montoya"}, {"arrows": "to", "from": "Aimee Montoya", "title": "Likes: 8685 | Comments: 8349", "to": "Derek Zuniga"}, {"arrows": "to", "from": "Derek Zuniga", "title": "Likes: 9954 | Comments: 9000", "to": "Denise Jacobs"}, {"arrows": "to", "from": "Denise Jacobs", "title": "Likes: 9595 | Comments: 5636", "to": "Sarah Moore"}, {"arrows": "to", "from": "Sarah Moore", "title": "Likes: 8405 | Comments: 9254", "to": "Michele Williams"}, {"arrows": "to", "from": "Michele Williams", "title": "Likes: 9313 | Comments: 4485", "to": "Lauren Daniels"}, {"arrows": "to", "from": "Lauren Daniels", "title": "Likes: 7149 | Comments: 7498", "to": "Shirley Suarez"}, {"arrows": "to", "from": "Shirley Suarez", "title": "Likes: 7077 | Comments: 7095", "to": "Richard Aguirre"}, {"arrows": "to", "from": "Richard Aguirre", "title": "Likes: 8935 | Comments: 6654", "to": "James Brown"}, {"arrows": "to", "from": "James Brown", "title": "Likes: 9950 | Comments: 6804", "to": "Anthony Humphrey"}, {"arrows": "to", "from": "Anthony Humphrey", "title": "Likes: 9098 | Comments: 6325", "to": "Daniel Wagner"}, {"arrows": "to", "from": "Daniel Wagner", "title": "Likes: 6798 | Comments: 2524", "to": "Jamie Arnold"}, {"arrows": "to", "from": "Jamie Arnold", "title": "Likes: 8391 | Comments: 6727", "to": "Zachary Hicks"}, {"arrows": "to", "from": "Zachary Hicks", "title": "Likes: 3365 | Comments: 8586", "to": "Elizabeth Fowler"}, {"arrows": "to", "from": "Elizabeth Fowler", "title": "Likes: 9920 | Comments: 7948", "to": "John Daniel"}, {"arrows": "to", "from": "John Daniel", "title": "Likes: 9476 | Comments: 6644", "to": "Christopher Bass"}, {"arrows": "to", "from": "Christopher Bass", "title": "Likes: 1517 | Comments: 2800", "to": "James Ferrell"}, {"arrows": "to", "from": "James Ferrell", "title": "Likes: 7818 | Comments: 4697", "to": "Brian Ramirez"}, {"arrows": "to", "from": "Brian Ramirez", "title": "Likes: 9149 | Comments: 8055", "to": "Allison Hill"}, {"arrows": "to", "from": "Allison Hill", "title": "Likes: 8381 | Comments: 8699", "to": "Crystal Robinson"}, {"arrows": "to", "from": "Crystal Robinson", "title": "Likes: 4073 | Comments: 9494", "to": "Abigail Shaffer"}, {"arrows": "to", "from": "Abigail Shaffer", "title": "Likes: 9700 | Comments: 4697", "to": "Daniel Baker"}, {"arrows": "to", "from": "Daniel Baker", "title": "Likes: 9576 | Comments: 6908", "to": "Monica Herrera"}, {"arrows": "to", "from": "Monica Herrera", "title": "Likes: 6083 | Comments: 6562", "to": "Jessica Holmes"}, {"arrows": "to", "from": "Jessica Holmes", "title": "Likes: 5902 | Comments: 6511", "to": "Steve Sanchez"}, {"arrows": "to", "from": "Steve Sanchez", "title": "Likes: 5930 | Comments: 7653", "to": "Brittney Phillips"}, {"arrows": "to", "from": "Brittney Phillips", "title": "Likes: 9653 | Comments: 1697", "to": "Lisa Hensley"}, {"arrows": "to", "from": "Lisa Hensley", "title": "Likes: 4803 | Comments: 2245", "to": "Michael Lewis"}, {"arrows": "to", "from": "Michael Lewis", "title": "Likes: 9548 | Comments: 5425", "to": "Ethan Adams"}, {"arrows": "to", "from": "Ethan Adams", "title": "Likes: 8292 | Comments: 2438", "to": "Brian Rodriguez"}, {"arrows": "to", "from": "Brian Rodriguez", "title": "Likes: 3042 | Comments: 5670", "to": "Tracy House"}, {"arrows": "to", "from": "Tracy House", "title": "Likes: 8245 | Comments: 5557", "to": "Paul Jones"}, {"arrows": "to", "from": "Paul Jones", "title": "Likes: 3230 | Comments: 5922", "to": "Angela Lopez"}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
