@@ -1,18 +1,18 @@
 from typing import Iterable, Optional, Set, Tuple
 
-
 class Graph:
     def __init__(self, directed:bool=False):
         
         self._outgoing : dict= {}
         self._incoming : dict = {} if directed else self._outgoing
-    
+
+
     class Vertex:
         __slots__ = '_element'
 
         def __init__(self, element: str):
             """
-            This funcion should not be called directly, to inserter a vertex call insert_vertex(x)
+            This function should not be called directly, to inserter a vertex call insert_vertex(x)
             """
             self._element : str = element
             
@@ -62,6 +62,7 @@ class Graph:
             return repr(str(f"{self._origin}, {self._destination}, {self.element}"))
 
 
+    
 
     def is_directed(self) -> bool:
         return self._incoming is not self._outgoing
@@ -74,12 +75,6 @@ class Graph:
 
     def get_edge(self, u: 'Graph.Vertex', v: 'Graph.Vertex') -> Optional['Edge']:
         return self._outgoing[u].get(v)
-    
-    def get_incoming_edges(self, u: 'Graph.Vertex') -> Iterable['Edge']:
-        return self._incoming[u]
-
-    def incoming_edges_count(self, u: 'Graph.Vertex') -> int:
-        return len(self._incoming[u])
     
     def degree(self, v: 'Graph.Vertex', outgoing: bool = True) -> int:
         """
@@ -142,7 +137,7 @@ class Graph:
             self._incoming[v] = {}
         return v
     
-    def insert_edge(self, u_element: 'Graph.Vertex', v_element: 'Graph.Vertex', x: dict = None) -> None:
+    def insert_edge(self, u_key: str, v_key: str, x: dict = None) -> None:
         """
         Inserts an edge between vertices u and v into the graph.
 
@@ -157,9 +152,9 @@ class Graph:
         # print('Verices: ', end=" ")
         for vertex in self.vertices():
             # print(vertex, end=' ')
-            if vertex.element == u_element:
+            if vertex.element == u_key:
                 u_vertex = vertex
-            elif vertex.element == v_element:
+            elif vertex.element == v_key:
                 v_vertex = vertex
     
         # print()
@@ -171,14 +166,13 @@ class Graph:
         self._outgoing[u_vertex][v_vertex] = e
         self._incoming[v_vertex][u_vertex] = e
 
-
     def bfs(self, source: 'Graph.Vertex', destination: 'Graph.Vertex') -> tuple[Optional[int], list['Graph.Vertex']]:
         # Initialize distances with infinity for all vertices except the source
-        distances: dict = {vertex: float('inf') for vertex in self._outgoing}
+        distances: dict = {vertex: float('inf') for vertex in self.vertices()}
         distances[source] = 0
 
         # Initialize visited status for all vertices
-        visited: dict = {vertex: False for vertex in self._outgoing}
+        visited: dict = {vertex: False for vertex in self.vertices()}
         visited[source] = True
 
         # Initialize queue with source vertex
@@ -201,7 +195,7 @@ class Graph:
 
         # If destination is not reachable, return None
         return None, []
-       
+
             
 if __name__ == '__main__':
     vertices = ['A', 'B', 'C', 'D', 'E']
@@ -224,7 +218,7 @@ if __name__ == '__main__':
     # print(gr._outgoing)
     # print(gr._incoming)
     
-    c_edges = gr.get_incoming_edges(vertex_objects['C'])
+    c_edges = gr.incident_edges(vertex_objects['C'], outgoing=True)
     # print(c_edges)
     
     source_vertex = vertex_objects['A']
